@@ -29,33 +29,27 @@ const (
 )
 
 type SocketInfo struct {
-	Type         TrafficType `json:"type" yaml:"type"`
-	Protocol     Protocol    `json:"protocol" yaml:"protocol"`
-	ProcessName  string      `json:"process_name" yaml:"process_name"`
-	SourceFile   string      `json:"source_file" yaml:"source_file"`
-	SourceLine   int         `json:"source_line" yaml:"source_line"`
-	FunctionName string      `json:"function_name" yaml:"function_name"`
-	
-	// Ingress-specific fields
-	ListenPort      *int    `json:"listen_port,omitempty" yaml:"listen_port,omitempty"`
-	ListenInterface string  `json:"listen_interface,omitempty" yaml:"listen_interface,omitempty"`
-	
-	// Egress-specific fields
-	DestinationHost *string `json:"destination_host,omitempty" yaml:"destination_host,omitempty"`
-	DestinationPort *int    `json:"destination_port,omitempty" yaml:"destination_port,omitempty"`
-	
-	// Additional metadata
-	IsResolved   bool   `json:"is_resolved" yaml:"is_resolved"`
-	RawValue     string `json:"raw_value" yaml:"raw_value"`
-	PatternMatch string `json:"pattern_match" yaml:"pattern_match"`
+	ListenPort      *int        `json:"listen_port,omitempty" yaml:"listen_port,omitempty"`
+	DestinationHost *string     `json:"destination_host,omitempty" yaml:"destination_host,omitempty"`
+	DestinationPort *int        `json:"destination_port,omitempty" yaml:"destination_port,omitempty"`
+	ProcessName     string      `json:"process_name" yaml:"process_name"`
+	SourceFile      string      `json:"source_file" yaml:"source_file"`
+	FunctionName    string      `json:"function_name" yaml:"function_name"`
+	ListenInterface string      `json:"listen_interface,omitempty" yaml:"listen_interface,omitempty"`
+	RawValue        string      `json:"raw_value" yaml:"raw_value"`
+	PatternMatch    string      `json:"pattern_match" yaml:"pattern_match"`
+	Type            TrafficType `json:"type" yaml:"type"`
+	Protocol        Protocol    `json:"protocol" yaml:"protocol"`
+	SourceLine      int         `json:"source_line" yaml:"source_line"`
+	IsResolved      bool        `json:"is_resolved" yaml:"is_resolved"`
 }
 
 type AnalysisResults struct {
-	Sockets     []SocketInfo `json:"sockets" yaml:"sockets"`
-	TotalCount  int          `json:"total_count" yaml:"total_count"`
-	IngressCount int         `json:"ingress_count" yaml:"ingress_count"`
-	EgressCount  int         `json:"egress_count" yaml:"egress_count"`
-	ProcessName  string      `json:"process_name" yaml:"process_name"`
+	ProcessName  string       `json:"process_name" yaml:"process_name"`
+	Sockets      []SocketInfo `json:"sockets" yaml:"sockets"`
+	TotalCount   int          `json:"total_count" yaml:"total_count"`
+	IngressCount int          `json:"ingress_count" yaml:"ingress_count"`
+	EgressCount  int          `json:"egress_count" yaml:"egress_count"`
 }
 
 func (r *AnalysisResults) Export(writer io.Writer, format string) error {
@@ -89,7 +83,8 @@ func (r *AnalysisResults) exportCSV(writer io.Writer) error {
 		return err
 	}
 
-	for _, socket := range r.Sockets {
+	for i := range r.Sockets {
+		socket := &r.Sockets[i]
 		record := []string{
 			string(socket.Type),
 			string(socket.Protocol),

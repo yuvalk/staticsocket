@@ -14,10 +14,10 @@ import (
 )
 
 type Analyzer struct {
-	fileSet   *token.FileSet
-	patterns  *patterns.PatternMatcher
-	resolver  *resolver.ValueResolver
-	results   *types.AnalysisResults
+	fileSet  *token.FileSet
+	patterns *patterns.PatternMatcher
+	resolver *resolver.ValueResolver
+	results  *types.AnalysisResults
 }
 
 func New() *Analyzer {
@@ -83,7 +83,7 @@ func (a *Analyzer) analyzeFile(filePath string) (*types.AnalysisResults, error) 
 	}
 
 	ast.Walk(visitor, file)
-	
+
 	a.updateCounts()
 	return a.results, nil
 }
@@ -93,8 +93,8 @@ func (a *Analyzer) updateCounts() {
 	a.results.IngressCount = 0
 	a.results.EgressCount = 0
 
-	for _, socket := range a.results.Sockets {
-		switch socket.Type {
+	for i := range a.results.Sockets {
+		switch a.results.Sockets[i].Type {
 		case types.TrafficTypeIngress:
 			a.results.IngressCount++
 		case types.TrafficTypeEgress:
@@ -116,11 +116,11 @@ func (v *astVisitor) Visit(node ast.Node) ast.Visitor {
 	}
 
 	position := v.analyzer.fileSet.Position(callExpr.Pos())
-	
+
 	if socket := v.analyzer.patterns.MatchSocketPattern(callExpr, v.file); socket != nil {
 		socket.SourceFile = v.filePath
 		socket.SourceLine = position.Line
-		
+
 		if socket.ProcessName == "" {
 			socket.ProcessName = v.deriveProcessName()
 		}

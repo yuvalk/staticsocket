@@ -10,31 +10,17 @@ import (
 )
 
 func TestAnalyzer_AnalyzeFile(t *testing.T) {
-	// Create a temporary test file
 	testCode := `package main
-
-import (
-	"net"
-	"net/http"
-)
-
+import ("net"; "net/http")
 const serverPort = ":8080"
-
 func main() {
-	// HTTP server
 	http.ListenAndServe(":3000", nil)
-	
-	// TCP listener with constant
 	listener, _ := net.Listen("tcp", serverPort)
 	defer listener.Close()
-	
-	// Outbound HTTP call
 	http.Get("https://api.example.com/data")
 }`
-
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.go")
-	
 	if err := os.WriteFile(testFile, []byte(testCode), 0644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
@@ -45,62 +31,76 @@ func main() {
 		t.Fatalf("Failed to analyze file: %v", err)
 	}
 
-	if results.TotalCount != 3 {
-		t.Errorf("Expected 3 sockets, got %d", results.TotalCount)
-	}
+	validateSocketCounts(t, results, 3, 2, 1)
 
-	if results.IngressCount != 2 {
-		t.Errorf("Expected 2 ingress sockets, got %d", results.IngressCount)
-	}
-
-	if results.EgressCount != 1 {
-		t.Errorf("Expected 1 egress socket, got %d", results.EgressCount)
-	}
-
-	// Check specific patterns
-	var httpServer, tcpListener, httpClient *types.SocketInfo
+	sockets := make(map[string]*types.SocketInfo)
 	for i := range results.Sockets {
-		socket := &results.Sockets[i]
-		switch socket.PatternMatch {
-		case "http.ListenAndServe":
-			httpServer = socket
-		case "net.Listen":
-			tcpListener = socket
-		case "http.Get":
-			httpClient = socket
-		}
+		sockets[results.Sockets[i].PatternMatch] = &results.Sockets[i]
 	}
 
-	if httpServer == nil {
-		t.Error("Expected to find http.ListenAndServe pattern")
-	} else {
+	validateHTTPServer(t, sockets)
+	validateTCPListener(t, sockets)
+	validateHTTPClient(t, sockets)
+}
+
+func validateSocketCounts(t *testing.T, results *types.AnalysisResults, total, ingress, egress int) {
+	t.Helper()
+	t.Run("Socket Counts", func(t *testing.T) {
+		if results.TotalCount != total {
+			t.Errorf("Expected %d total sockets, got %d", total, results.TotalCount)
+		}
+		if results.IngressCount != ingress {
+			t.Errorf("Expected %d ingress sockets, got %d", ingress, results.IngressCount)
+		}
+		if results.EgressCount != egress {
+			t.Errorf("Expected %d egress sockets, got %d", egress, results.EgressCount)
+		}
+	})
+}
+
+func validateHTTPServer(t *testing.T, sockets map[string]*types.SocketInfo) {
+	t.Helper()
+	t.Run("HTTP Server", func(t *testing.T) {
+		httpServer, ok := sockets["http.ListenAndServe"]
+		if !ok {
+			t.Fatal("Expected to find http.ListenAndServe pattern")
+		}
 		if httpServer.Type != types.TrafficTypeIngress {
 			t.Error("HTTP server should be ingress traffic")
 		}
 		if httpServer.ListenPort == nil || *httpServer.ListenPort != 3000 {
 			t.Errorf("Expected HTTP server port 3000, got %v", httpServer.ListenPort)
 		}
-	}
+	})
+}
 
-	if tcpListener == nil {
-		t.Error("Expected to find net.Listen pattern")
-	} else {
+func validateTCPListener(t *testing.T, sockets map[string]*types.SocketInfo) {
+	t.Helper()
+	t.Run("TCP Listener", func(t *testing.T) {
+		tcpListener, ok := sockets["net.Listen"]
+		if !ok {
+			t.Fatal("Expected to find net.Listen pattern")
+		}
 		if tcpListener.Type != types.TrafficTypeIngress {
 			t.Error("TCP listener should be ingress traffic")
 		}
-		// Note: constant resolution is simplified in current implementation
-	}
+	})
+}
 
-	if httpClient == nil {
-		t.Error("Expected to find http.Get pattern")
-	} else {
+func validateHTTPClient(t *testing.T, sockets map[string]*types.SocketInfo) {
+	t.Helper()
+	t.Run("HTTP Client", func(t *testing.T) {
+		httpClient, ok := sockets["http.Get"]
+		if !ok {
+			t.Fatal("Expected to find http.Get pattern")
+		}
 		if httpClient.Type != types.TrafficTypeEgress {
 			t.Error("HTTP client should be egress traffic")
 		}
 		if httpClient.DestinationHost == nil || *httpClient.DestinationHost != "api.example.com" {
 			t.Errorf("Expected destination host api.example.com, got %v", httpClient.DestinationHost)
 		}
-	}
+	})
 }
 
 func TestAnalyzer_AnalyzeDirectory(t *testing.T) {
@@ -196,7 +196,7 @@ func TestAnalyzer_IntegrationWithTestData(t *testing.T) {
 func TestAnalyzer_EmptyFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "empty.go")
-	
+
 	if err := os.WriteFile(testFile, []byte("package main"), 0644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestAnalyzer_EmptyFile(t *testing.T) {
 func TestAnalyzer_InvalidGoFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "invalid.go")
-	
+
 	// Write invalid Go syntax
 	if err := os.WriteFile(testFile, []byte("invalid go syntax {{{"), 0644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)

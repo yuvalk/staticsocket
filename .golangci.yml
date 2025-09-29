@@ -2,12 +2,10 @@ run:
   timeout: 5m
   issues-exit-code: 1
   tests: true
-  skip-dirs:
-    - vendor
-    - testdata
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
 
@@ -15,30 +13,29 @@ linters-settings:
   errcheck:
     check-type-assertions: true
     check-blank: true
-  
+
   govet:
-    check-shadowing: true
     enable-all: true
-  
+
   gocyclo:
     min-complexity: 15
-  
+
   dupl:
     threshold: 100
-  
+
   goconst:
     min-len: 3
     min-occurrences: 3
-  
+
   misspell:
     locale: US
-  
+
   lll:
     line-length: 120
-  
+
   goimports:
     local-prefixes: github.com/yuvalk/staticsocket
-  
+
   gocritic:
     enabled-tags:
       - diagnostic
@@ -52,15 +49,16 @@ linters-settings:
       - octalLiteral
       - whyNoLint
       - wrapperFunc
-  
+
   funlen:
     lines: 80
     statements: 40
-  
+
   gosec:
     excludes:
       - G404 # Use of weak random number generator
-  
+      - G306 # Expect WriteFile permissions to be 0600 or less
+
   revive:
     rules:
       - name: exported
@@ -68,15 +66,22 @@ linters-settings:
           - checkPrivateReceivers
           - sayRepetitiveInsteadOfStutters
 
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - github.com/yuvalk/staticsocket
+          - gopkg.in/yaml.v3
+
 linters:
   enable:
     - bodyclose
-    - deadcode
+    - copyloopvar
     - depguard
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
     - exhaustive
     - funlen
     - gochecknoinits
@@ -85,7 +90,6 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - gomnd
     - goprintffuncname
     - gosec
     - gosimple
@@ -93,18 +97,17 @@ linters:
     - ineffassign
     - lll
     - misspell
+    - mnd
     - nakedret
     - noctx
     - nolintlint
     - revive
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
   disable:
@@ -112,19 +115,20 @@ linters:
     - gocognit
     - godot
     - godox
-    - goerr113
-    - interfacer
-    - maligned
+    - err113
     - nestif
     - prealloc
     - testpackage
     - wsl
 
 issues:
+  exclude-dirs:
+    - vendor
+    - testdata
   exclude-rules:
     - path: _test\.go
       linters:
-        - gomnd
+        - mnd
         - funlen
         - dupl
     - path: testdata/

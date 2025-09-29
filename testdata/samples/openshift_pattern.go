@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"testing"
 )
 
 // This mimics the OpenShift webhook_test.go pattern

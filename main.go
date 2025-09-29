@@ -11,6 +11,13 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	var (
 		targetPath = flag.String("path", ".", "Path to analyze (file or directory)")
 		outputFile = flag.String("output", "", "Output file (default: stdout)")
@@ -28,23 +35,22 @@ func main() {
 	analyzer := analyzer.New()
 	results, err := analyzer.Analyze(*targetPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error analyzing path %s: %v\n", *targetPath, err)
-		os.Exit(1)
+		return fmt.Errorf("analyzing path %s: %w", *targetPath, err)
 	}
 
 	output := os.Stdout
 	if *outputFile != "" {
 		file, err := os.Create(*outputFile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating output file: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("creating output file: %w", err)
 		}
 		defer file.Close()
 		output = file
 	}
 
 	if err := results.Export(output, *format); err != nil {
-		fmt.Fprintf(os.Stderr, "Error exporting results: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("exporting results: %w", err)
 	}
+
+	return nil
 }

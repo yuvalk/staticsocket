@@ -29,7 +29,7 @@ func (s *Server) Start() error {
 
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
-	
+
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		// Health check makes external call
 		resp, err := http.Get("http://health-service.internal:8080/status")
@@ -60,7 +60,7 @@ func startMetricsServer() {
 	if port == "" {
 		port = "9090"
 	}
-	
+
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		return

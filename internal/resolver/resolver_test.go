@@ -32,7 +32,7 @@ func testHandler() {
 	}
 
 	resolver := New()
-	
+
 	// Find the http.Post call
 	var callExpr *ast.CallExpr
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -84,7 +84,7 @@ func makeRequest() {
 	}
 
 	resolver := New()
-	
+
 	// Find the http.Get call
 	var callExpr *ast.CallExpr
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -127,35 +127,28 @@ func TestValueResolver_DetectCommonPatterns(t *testing.T) {
 		name         string
 		varName      string
 		expectedHost string
-		expectedPort int
 	}{
 		{
 			name:         "httptest server",
 			varName:      "server.URL",
 			expectedHost: "localhost",
-			expectedPort: 0, // Dynamic port
 		},
 		{
 			name:         "environment variable",
 			varName:      "os.Getenv(\"API_URL\")",
 			expectedHost: "", // Can't resolve
-			expectedPort: 0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := New()
-			
+
 			// Test pattern detection
-			host, port, resolved := resolver.analyzeVariablePattern(tt.varName)
-			
+			host, resolved := resolver.analyzeVariablePattern(tt.varName)
+
 			if tt.expectedHost != "" && (!resolved || host != tt.expectedHost) {
 				t.Errorf("Expected host %s, got %s (resolved: %t)", tt.expectedHost, host, resolved)
-			}
-			
-			if tt.expectedPort > 0 && port != tt.expectedPort {
-				t.Errorf("Expected port %d, got %d", tt.expectedPort, port)
 			}
 		})
 	}

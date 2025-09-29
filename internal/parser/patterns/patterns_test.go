@@ -11,9 +11,9 @@ import (
 
 func TestPatternMatcher_MatchIngressPatterns(t *testing.T) {
 	tests := []struct {
+		expected *types.SocketInfo
 		name     string
 		code     string
-		expected *types.SocketInfo
 	}{
 		{
 			name: "HTTP ListenAndServe with port",
@@ -104,48 +104,16 @@ func main() {
 				return true
 			})
 
-			if result == nil {
-				t.Fatal("Expected to find a socket pattern, but found none")
-			}
-
-			if result.Type != tt.expected.Type {
-				t.Errorf("Type: expected %s, got %s", tt.expected.Type, result.Type)
-			}
-			if result.Protocol != tt.expected.Protocol {
-				t.Errorf("Protocol: expected %s, got %s", tt.expected.Protocol, result.Protocol)
-			}
-			if result.PatternMatch != tt.expected.PatternMatch {
-				t.Errorf("PatternMatch: expected %s, got %s", tt.expected.PatternMatch, result.PatternMatch)
-			}
-			if result.RawValue != tt.expected.RawValue {
-				t.Errorf("RawValue: expected %s, got %s", tt.expected.RawValue, result.RawValue)
-			}
-			if result.IsResolved != tt.expected.IsResolved {
-				t.Errorf("IsResolved: expected %t, got %t", tt.expected.IsResolved, result.IsResolved)
-			}
-
-			if tt.expected.ListenPort != nil {
-				if result.ListenPort == nil {
-					t.Error("Expected ListenPort to be set, but it was nil")
-				} else if *result.ListenPort != *tt.expected.ListenPort {
-					t.Errorf("ListenPort: expected %d, got %d", *tt.expected.ListenPort, *result.ListenPort)
-				}
-			}
-
-			if tt.expected.ListenInterface != "" {
-				if result.ListenInterface != tt.expected.ListenInterface {
-					t.Errorf("ListenInterface: expected %s, got %s", tt.expected.ListenInterface, result.ListenInterface)
-				}
-			}
+			assertIngressSocketInfo(t, tt.expected, result)
 		})
 	}
 }
 
 func TestPatternMatcher_MatchEgressPatterns(t *testing.T) {
 	tests := []struct {
+		expected *types.SocketInfo
 		name     string
 		code     string
-		expected *types.SocketInfo
 	}{
 		{
 			name: "HTTP GET request",
@@ -238,35 +206,7 @@ func main() {
 				return true
 			})
 
-			if result == nil {
-				t.Fatal("Expected to find a socket pattern, but found none")
-			}
-
-			if result.Type != tt.expected.Type {
-				t.Errorf("Type: expected %s, got %s", tt.expected.Type, result.Type)
-			}
-			if result.Protocol != tt.expected.Protocol {
-				t.Errorf("Protocol: expected %s, got %s", tt.expected.Protocol, result.Protocol)
-			}
-			if result.PatternMatch != tt.expected.PatternMatch {
-				t.Errorf("PatternMatch: expected %s, got %s", tt.expected.PatternMatch, result.PatternMatch)
-			}
-
-			if tt.expected.DestinationHost != nil {
-				if result.DestinationHost == nil {
-					t.Error("Expected DestinationHost to be set, but it was nil")
-				} else if *result.DestinationHost != *tt.expected.DestinationHost {
-					t.Errorf("DestinationHost: expected %s, got %s", *tt.expected.DestinationHost, *result.DestinationHost)
-				}
-			}
-
-			if tt.expected.DestinationPort != nil {
-				if result.DestinationPort == nil {
-					t.Error("Expected DestinationPort to be set, but it was nil")
-				} else if *result.DestinationPort != *tt.expected.DestinationPort {
-					t.Errorf("DestinationPort: expected %d, got %d", *tt.expected.DestinationPort, *result.DestinationPort)
-				}
-			}
+			assertEgressSocketInfo(t, tt.expected, result)
 		})
 	}
 }
@@ -356,6 +296,76 @@ func main() {
 }
 
 // Helper functions
+func assertIngressSocketInfo(t *testing.T, expected, result *types.SocketInfo) {
+	t.Helper()
+	if result == nil {
+		t.Fatal("Expected to find a socket pattern, but found none")
+	}
+
+	if result.Type != expected.Type {
+		t.Errorf("Type: expected %s, got %s", expected.Type, result.Type)
+	}
+	if result.Protocol != expected.Protocol {
+		t.Errorf("Protocol: expected %s, got %s", expected.Protocol, result.Protocol)
+	}
+	if result.PatternMatch != expected.PatternMatch {
+		t.Errorf("PatternMatch: expected %s, got %s", expected.PatternMatch, result.PatternMatch)
+	}
+	if result.RawValue != expected.RawValue {
+		t.Errorf("RawValue: expected %s, got %s", expected.RawValue, result.RawValue)
+	}
+	if result.IsResolved != expected.IsResolved {
+		t.Errorf("IsResolved: expected %t, got %t", expected.IsResolved, result.IsResolved)
+	}
+
+	if expected.ListenPort != nil {
+		if result.ListenPort == nil {
+			t.Error("Expected ListenPort to be set, but it was nil")
+		} else if *result.ListenPort != *expected.ListenPort {
+			t.Errorf("ListenPort: expected %d, got %d", *expected.ListenPort, *result.ListenPort)
+		}
+	}
+
+	if expected.ListenInterface != "" {
+		if result.ListenInterface != expected.ListenInterface {
+			t.Errorf("ListenInterface: expected %s, got %s", expected.ListenInterface, result.ListenInterface)
+		}
+	}
+}
+
+func assertEgressSocketInfo(t *testing.T, expected, result *types.SocketInfo) {
+	t.Helper()
+	if result == nil {
+		t.Fatal("Expected to find a socket pattern, but found none")
+	}
+
+	if result.Type != expected.Type {
+		t.Errorf("Type: expected %s, got %s", expected.Type, result.Type)
+	}
+	if result.Protocol != expected.Protocol {
+		t.Errorf("Protocol: expected %s, got %s", expected.Protocol, result.Protocol)
+	}
+	if result.PatternMatch != expected.PatternMatch {
+		t.Errorf("PatternMatch: expected %s, got %s", expected.PatternMatch, result.PatternMatch)
+	}
+
+	if expected.DestinationHost != nil {
+		if result.DestinationHost == nil {
+			t.Error("Expected DestinationHost to be set, but it was nil")
+		} else if *result.DestinationHost != *expected.DestinationHost {
+			t.Errorf("DestinationHost: expected %s, got %s", *expected.DestinationHost, *result.DestinationHost)
+		}
+	}
+
+	if expected.DestinationPort != nil {
+		if result.DestinationPort == nil {
+			t.Error("Expected DestinationPort to be set, but it was nil")
+		} else if *result.DestinationPort != *expected.DestinationPort {
+			t.Errorf("DestinationPort: expected %d, got %d", *expected.DestinationPort, *result.DestinationPort)
+		}
+	}
+}
+
 func intPtr(i int) *int {
 	return &i
 }

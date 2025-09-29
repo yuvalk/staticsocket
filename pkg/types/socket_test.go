@@ -10,7 +10,7 @@ import (
 func TestSocketInfo_JSONExport(t *testing.T) {
 	port := 8080
 	host := "example.com"
-	
+
 	socket := SocketInfo{
 		Type:            TrafficTypeIngress,
 		Protocol:        ProtocolHTTP,
@@ -88,7 +88,7 @@ func TestAnalysisResults_ExportJSON(t *testing.T) {
 func TestAnalysisResults_ExportCSV(t *testing.T) {
 	port := 8080
 	host := "api.example.com"
-	
+
 	results := AnalysisResults{
 		Sockets: []SocketInfo{
 			{
@@ -173,7 +173,7 @@ func TestAnalysisResults_ExportYAML(t *testing.T) {
 func TestAnalysisResults_ExportUnsupportedFormat(t *testing.T) {
 	results := AnalysisResults{}
 	var buf bytes.Buffer
-	
+
 	err := results.Export(&buf, "xml")
 	if err == nil {
 		t.Error("Expected error for unsupported format")

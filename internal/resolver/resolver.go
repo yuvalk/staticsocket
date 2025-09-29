@@ -8,6 +8,10 @@ import (
 	socketTypes "github.com/yuvalk/staticsocket/pkg/types"
 )
 
+const (
+	hostPortPartsCount = 2
+)
+
 type ValueResolver struct {
 	// Future: add support for type checking and constant resolution
 }
@@ -53,44 +57,38 @@ func (r *ValueResolver) tryResolveArgument(socket *socketTypes.SocketInfo, arg a
 			r.updateSocketWithResolvedValue(socket, value)
 			return true
 		}
-		
+
 		// Check for common patterns like httptest server
-		if host, port, resolved := r.analyzeVariablePattern(expr.Name); resolved {
+		if host, resolved := r.analyzeVariablePattern(expr.Name); resolved {
 			socket.IsResolved = true
 			socket.DestinationHost = &host
-			if port > 0 {
-				socket.DestinationPort = &port
-			}
 			socket.RawValue = expr.Name
 			return true
 		}
-		
+
 	case *ast.SelectorExpr:
 		// Field access like server.URL, os.Getenv(), etc.
 		varName := r.extractSelectorName(expr)
-		if host, port, resolved := r.analyzeVariablePattern(varName); resolved {
+		if host, resolved := r.analyzeVariablePattern(varName); resolved {
 			socket.IsResolved = true
 			socket.DestinationHost = &host
-			if port > 0 {
-				socket.DestinationPort = &port
-			}
 			socket.RawValue = varName
 			return true
 		}
-		
+
 	case *ast.BinaryExpr:
 		// String concatenation like baseURL + endpoint
 		if r.tryResolveBinaryExpr(socket, expr, file) {
 			return true
 		}
-		
+
 	case *ast.CallExpr:
 		// Function calls like url.Parse().String(), getServiceURL()
-		if r.tryResolveCallExpr(socket, expr, file) {
+		if r.tryResolveCallExpr(socket, expr) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -148,62 +146,66 @@ func (r *ValueResolver) parseEgressValue(socket *socketTypes.SocketInfo, value s
 		// URL parsing is handled by the patterns package
 		return
 	}
-	
+
 	// Parse simple host:port format
 	parts := strings.Split(value, ":")
-	if len(parts) == 2 {
+	if len(parts) == hostPortPartsCount {
 		host := parts[0]
 		socket.DestinationHost = &host
-		
+
 		if port, err := strconv.Atoi(parts[1]); err == nil {
 			socket.DestinationPort = &port
 		}
 	}
 }
 
-func (r *ValueResolver) analyzeVariablePattern(varName string) (host string, port int, resolved bool) {
+func (r *ValueResolver) analyzeVariablePattern(varName string) (host string, resolved bool) {
 	// Common patterns we can make educated guesses about
 	switch {
 	case strings.Contains(varName, "server.URL") || strings.Contains(varName, "httptest"):
 		// httptest.NewServer() typically binds to localhost with random port
-		return "localhost", 0, true
-		
+		return "localhost", true
+
 	case strings.Contains(varName, "localhost") || strings.Contains(varName, "127.0.0.1"):
 		// Variables with localhost in name likely target localhost
-		return "localhost", 0, true
-		
+		return "localhost", true
+
 	case strings.Contains(varName, "URL") && (strings.Contains(varName, "api") || strings.Contains(varName, "service")):
 		// API/service URLs - we can mark as external but don't know specifics
-		return "external-service", 0, true
-		
+		return "external-service", true
+
 	default:
-		return "", 0, false
+		return "", false
 	}
 }
 
 func (r *ValueResolver) extractSelectorName(expr *ast.SelectorExpr) string {
 	// Extract the full selector expression as a string
 	var parts []string
-	
+
 	// Walk the selector chain
 	current := expr
 	for current != nil {
 		parts = append([]string{current.Sel.Name}, parts...)
-		
-		if ident, ok := current.X.(*ast.Ident); ok {
-			parts = append([]string{ident.Name}, parts...)
-			break
-		} else if sel, ok := current.X.(*ast.SelectorExpr); ok {
-			current = sel
-		} else {
-			break
+		switch x := current.X.(type) {
+		case *ast.Ident:
+			parts = append([]string{x.Name}, parts...)
+			current = nil
+		case *ast.SelectorExpr:
+			current = x
+		default:
+			current = nil
 		}
 	}
-	
+
 	return strings.Join(parts, ".")
 }
 
-func (r *ValueResolver) tryResolveBinaryExpr(socket *socketTypes.SocketInfo, expr *ast.BinaryExpr, file *ast.File) bool {
+func (r *ValueResolver) tryResolveBinaryExpr(
+	socket *socketTypes.SocketInfo,
+	expr *ast.BinaryExpr,
+	file *ast.File,
+) bool {
 	// Handle string concatenation like baseURL + endpoint
 	if expr.Op.String() == "+" {
 		// Try to resolve the left side (usually the base URL)
@@ -212,7 +214,7 @@ func (r *ValueResolver) tryResolveBinaryExpr(socket *socketTypes.SocketInfo, exp
 				// Mark as partially resolved with the base URL
 				socket.IsResolved = true
 				socket.RawValue = baseValue + " + ..."
-				
+
 				// Try to parse the base URL
 				if strings.Contains(baseValue, "://") {
 					// Parse as URL
@@ -228,11 +230,11 @@ func (r *ValueResolver) tryResolveBinaryExpr(socket *socketTypes.SocketInfo, exp
 	return false
 }
 
-func (r *ValueResolver) tryResolveCallExpr(socket *socketTypes.SocketInfo, expr *ast.CallExpr, file *ast.File) bool {
+func (r *ValueResolver) tryResolveCallExpr(socket *socketTypes.SocketInfo, expr *ast.CallExpr) bool {
 	// Handle function calls that return URLs
 	if sel, ok := expr.Fun.(*ast.SelectorExpr); ok {
 		funcName := r.extractSelectorName(sel)
-		
+
 		// Common patterns
 		switch {
 		case strings.Contains(funcName, "String") && strings.Contains(funcName, "URL"):
@@ -241,7 +243,7 @@ func (r *ValueResolver) tryResolveCallExpr(socket *socketTypes.SocketInfo, expr 
 			socket.RawValue = "parsed-url"
 			socket.DestinationHost = stringPtr("parsed-url-host")
 			return true
-			
+
 		case strings.Contains(funcName, "getURL") || strings.Contains(funcName, "GetURL"):
 			// Functions that return URLs
 			socket.IsResolved = true
@@ -250,7 +252,7 @@ func (r *ValueResolver) tryResolveCallExpr(socket *socketTypes.SocketInfo, expr 
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -267,14 +269,14 @@ func (r *ValueResolver) parseURLForSocket(socket *socketTypes.SocketInfo, url st
 		port := 80
 		socket.DestinationPort = &port
 	}
-	
+
 	// Extract host
 	parts := strings.Split(url, "/")
 	if len(parts) > 0 && parts[0] != "" {
 		hostPort := parts[0]
 		if strings.Contains(hostPort, ":") {
 			hostPortParts := strings.Split(hostPort, ":")
-			if len(hostPortParts) >= 2 {
+			if len(hostPortParts) >= hostPortPartsCount {
 				host := hostPortParts[0]
 				socket.DestinationHost = &host
 				if port, err := strconv.Atoi(hostPortParts[1]); err == nil {

@@ -8,21 +8,26 @@ import (
 	"github.com/yuvalk/staticsocket/pkg/types"
 )
 
+const (
+	dialAddressArg     = 2
+	hostPortPartsCount = 2
+)
+
 type PatternMatcher struct {
 	ingressPatterns map[string]IngressPattern
 	egressPatterns  map[string]EgressPattern
 }
 
 type IngressPattern struct {
-	Protocol    types.Protocol
-	AddressArg  int // argument index for address
-	PortOnly    bool // true if address is just port (e.g., ":8080")
+	Protocol   types.Protocol
+	AddressArg int  // argument index for address
+	PortOnly   bool // true if address is just port (e.g., ":8080")
 }
 
 type EgressPattern struct {
-	Protocol    types.Protocol
-	AddressArg  int // argument index for address
-	URLArg      int // argument index for URL (for HTTP patterns)
+	Protocol   types.Protocol
+	AddressArg int // argument index for address
+	URLArg     int // argument index for URL (for HTTP patterns)
 }
 
 func NewPatternMatcher() *PatternMatcher {
@@ -41,12 +46,14 @@ func (pm *PatternMatcher) initializePatterns() {
 	pm.ingressPatterns["net.ListenUDP"] = IngressPattern{Protocol: types.ProtocolUDP, AddressArg: 1}
 	pm.ingressPatterns["net.ListenUnix"] = IngressPattern{Protocol: types.ProtocolUnix, AddressArg: 1}
 	pm.ingressPatterns["http.ListenAndServe"] = IngressPattern{Protocol: types.ProtocolHTTP, AddressArg: 0, PortOnly: true}
-	pm.ingressPatterns["http.ListenAndServeTLS"] = IngressPattern{Protocol: types.ProtocolHTTPS, AddressArg: 0, PortOnly: true}
+	pm.ingressPatterns["http.ListenAndServeTLS"] = IngressPattern{
+		Protocol: types.ProtocolHTTPS, AddressArg: 0, PortOnly: true,
+	}
 
 	// Egress patterns (outbound connections)
 	pm.egressPatterns["net.Dial"] = EgressPattern{Protocol: types.ProtocolTCP, AddressArg: 1}
-	pm.egressPatterns["net.DialTCP"] = EgressPattern{Protocol: types.ProtocolTCP, AddressArg: 2}
-	pm.egressPatterns["net.DialUDP"] = EgressPattern{Protocol: types.ProtocolUDP, AddressArg: 2}
+	pm.egressPatterns["net.DialTCP"] = EgressPattern{Protocol: types.ProtocolTCP, AddressArg: dialAddressArg}
+	pm.egressPatterns["net.DialUDP"] = EgressPattern{Protocol: types.ProtocolUDP, AddressArg: dialAddressArg}
 	pm.egressPatterns["net.DialTimeout"] = EgressPattern{Protocol: types.ProtocolTCP, AddressArg: 1}
 	pm.egressPatterns["http.Get"] = EgressPattern{Protocol: types.ProtocolHTTP, URLArg: 0}
 	pm.egressPatterns["http.Post"] = EgressPattern{Protocol: types.ProtocolHTTP, URLArg: 0}
@@ -72,7 +79,11 @@ func (pm *PatternMatcher) MatchSocketPattern(callExpr *ast.CallExpr, file *ast.F
 	return nil
 }
 
-func (pm *PatternMatcher) matchIngressPattern(callExpr *ast.CallExpr, pattern IngressPattern, funcName string) *types.SocketInfo {
+func (pm *PatternMatcher) matchIngressPattern(
+	callExpr *ast.CallExpr,
+	pattern IngressPattern,
+	funcName string,
+) *types.SocketInfo {
 	if len(callExpr.Args) <= pattern.AddressArg {
 		return nil
 	}
@@ -95,7 +106,11 @@ func (pm *PatternMatcher) matchIngressPattern(callExpr *ast.CallExpr, pattern In
 	return socket
 }
 
-func (pm *PatternMatcher) matchEgressPattern(callExpr *ast.CallExpr, pattern EgressPattern, funcName string) *types.SocketInfo {
+func (pm *PatternMatcher) matchEgressPattern(
+	callExpr *ast.CallExpr,
+	pattern EgressPattern,
+	funcName string,
+) *types.SocketInfo {
 	var rawValue string
 	var argIndex int
 	var isURL bool
@@ -177,7 +192,7 @@ func (pm *PatternMatcher) parseIngressAddress(socket *types.SocketInfo, address 
 
 	// Parse host:port format
 	parts := strings.Split(address, ":")
-	if len(parts) == 2 {
+	if len(parts) == hostPortPartsCount {
 		host := parts[0]
 		if host == "" {
 			host = "0.0.0.0"
@@ -194,7 +209,7 @@ func (pm *PatternMatcher) parseEgressAddress(socket *types.SocketInfo, address s
 	socket.IsResolved = true
 
 	parts := strings.Split(address, ":")
-	if len(parts) == 2 {
+	if len(parts) == hostPortPartsCount {
 		host := parts[0]
 		socket.DestinationHost = &host
 
@@ -210,7 +225,7 @@ func (pm *PatternMatcher) parseEgressURL(socket *types.SocketInfo, url string) {
 	// Parse URL to extract scheme, host, and port
 	var remainingURL string
 	var defaultPort int
-	
+
 	if strings.HasPrefix(url, "https://") {
 		socket.Protocol = types.ProtocolHTTPS
 		remainingURL = url[8:]
@@ -232,7 +247,7 @@ func (pm *PatternMatcher) parseEgressURL(socket *types.SocketInfo, url string) {
 		if strings.Contains(hostPort, ":") {
 			// Host includes explicit port
 			hostPortParts := strings.Split(hostPort, ":")
-			if len(hostPortParts) >= 2 {
+			if len(hostPortParts) >= hostPortPartsCount {
 				host := hostPortParts[0]
 				socket.DestinationHost = &host
 				if port, err := strconv.Atoi(hostPortParts[1]); err == nil {
