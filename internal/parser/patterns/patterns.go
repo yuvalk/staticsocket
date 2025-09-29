@@ -207,37 +207,42 @@ func (pm *PatternMatcher) parseEgressAddress(socket *types.SocketInfo, address s
 func (pm *PatternMatcher) parseEgressURL(socket *types.SocketInfo, url string) {
 	socket.IsResolved = true
 
-	// Simple URL parsing - in practice, you'd use net/url
+	// Parse URL to extract scheme, host, and port
 	var remainingURL string
+	var defaultPort int
+	
 	if strings.HasPrefix(url, "https://") {
 		socket.Protocol = types.ProtocolHTTPS
 		remainingURL = url[8:]
-		port := 443
-		socket.DestinationPort = &port
+		defaultPort = 443
 	} else if strings.HasPrefix(url, "http://") {
 		socket.Protocol = types.ProtocolHTTP
 		remainingURL = url[7:]
-		port := 80
-		socket.DestinationPort = &port
+		defaultPort = 80
 	} else {
+		// No scheme prefix, treat as raw URL
 		remainingURL = url
+		defaultPort = 80
 	}
 
-	// Extract host from URL (everything before the first slash)
+	// Extract host and port from URL (everything before the first slash)
 	parts := strings.Split(remainingURL, "/")
 	if len(parts) > 0 && parts[0] != "" {
 		hostPort := parts[0]
 		if strings.Contains(hostPort, ":") {
+			// Host includes explicit port
 			hostPortParts := strings.Split(hostPort, ":")
-			host := hostPortParts[0]
-			socket.DestinationHost = &host
-			if len(hostPortParts) > 1 {
+			if len(hostPortParts) >= 2 {
+				host := hostPortParts[0]
+				socket.DestinationHost = &host
 				if port, err := strconv.Atoi(hostPortParts[1]); err == nil {
 					socket.DestinationPort = &port
 				}
 			}
 		} else {
+			// Host without explicit port, use default
 			socket.DestinationHost = &hostPort
+			socket.DestinationPort = &defaultPort
 		}
 	}
 }

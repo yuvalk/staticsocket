@@ -3,6 +3,7 @@ package resolver
 import (
 	"go/ast"
 	"strconv"
+	"strings"
 
 	socketTypes "github.com/yuvalk/staticsocket/pkg/types"
 )
@@ -81,6 +82,21 @@ func (r *ValueResolver) parseIngressValue(socket *socketTypes.SocketInfo, value 
 }
 
 func (r *ValueResolver) parseEgressValue(socket *socketTypes.SocketInfo, value string) {
-	// Simplified egress parsing
-	// In practice, you'd use proper URL parsing and host:port parsing
+	// Parse egress addresses (host:port format)
+	if strings.Contains(value, "://") {
+		// This looks like a URL, but we only handle simple host:port here
+		// URL parsing is handled by the patterns package
+		return
+	}
+	
+	// Parse simple host:port format
+	parts := strings.Split(value, ":")
+	if len(parts) == 2 {
+		host := parts[0]
+		socket.DestinationHost = &host
+		
+		if port, err := strconv.Atoi(parts[1]); err == nil {
+			socket.DestinationPort = &port
+		}
+	}
 }
