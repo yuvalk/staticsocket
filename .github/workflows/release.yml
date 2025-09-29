@@ -1,0 +1,186 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  GO_VERSION: '1.22'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Simple changelog generation - in practice you'd use a tool like git-chglog
+        echo "## Changes in this Release" > CHANGELOG.md
+        git log $(git describe --tags --abbrev=0 HEAD~1)..HEAD --pretty=format:"- %s" >> CHANGELOG.md
+        echo "CHANGELOG_CONTENT<<EOF" >> $GITHUB_OUTPUT
+        cat CHANGELOG.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: ${{ steps.changelog.outputs.CHANGELOG_CONTENT }}
+        draft: false
+        prerelease: false
+
+  build-and-upload:
+    name: Build and Upload Assets
+    runs-on: ubuntu-latest
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+          - os: windows
+            arch: amd64
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.os }}
+        GOARCH: ${{ matrix.arch }}
+        CGO_ENABLED: 0
+      run: |
+        ext=""
+        if [ "${{ matrix.os }}" = "windows" ]; then
+          ext=".exe"
+        fi
+        
+        # Build with version information
+        VERSION=${GITHUB_REF#refs/tags/}
+        LDFLAGS="-w -s -X main.version=$VERSION -X main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        
+        go build -ldflags="$LDFLAGS" -o "staticsocket-${{ matrix.os }}-${{ matrix.arch }}${ext}" .
+
+    - name: Create archive
+      run: |
+        ext=""
+        archive_ext="tar.gz"
+        if [ "${{ matrix.os }}" = "windows" ]; then
+          ext=".exe"
+          archive_ext="zip"
+        fi
+        
+        binary_name="staticsocket-${{ matrix.os }}-${{ matrix.arch }}${ext}"
+        archive_name="staticsocket-${{ matrix.os }}-${{ matrix.arch }}.${archive_ext}"
+        
+        if [ "$archive_ext" = "zip" ]; then
+          zip "$archive_name" "$binary_name" README.md LICENSE
+        else
+          tar czf "$archive_name" "$binary_name" README.md LICENSE
+        fi
+        
+        echo "ARCHIVE_NAME=$archive_name" >> $GITHUB_ENV
+        echo "BINARY_NAME=$binary_name" >> $GITHUB_ENV
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./${{ env.ARCHIVE_NAME }}
+        asset_name: ${{ env.ARCHIVE_NAME }}
+        asset_content_type: application/octet-stream
+
+  docker-build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: create-release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: staticsocket/staticsocket
+        tags: |
+          type=ref,event=tag
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  publish-packages:
+    name: Publish Packages
+    runs-on: ubuntu-latest
+    needs: create-release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run GoReleaser
+      uses: goreleaser/goreleaser-action@v5
+      with:
+        distribution: goreleaser
+        version: latest
+        args: release --clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

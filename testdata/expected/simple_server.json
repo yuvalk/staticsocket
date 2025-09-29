@@ -1,0 +1,47 @@
+{
+  "sockets": [
+    {
+      "type": "ingress",
+      "protocol": "http",
+      "process_name": "samples",
+      "source_file": "testdata/samples/simple_server.go",
+      "source_line": 11,
+      "function_name": "unknown",
+      "listen_port": 3000,
+      "listen_interface": "0.0.0.0",
+      "is_resolved": true,
+      "raw_value": ":3000",
+      "pattern_match": "http.ListenAndServe"
+    },
+    {
+      "type": "ingress",
+      "protocol": "tcp",
+      "process_name": "samples",
+      "source_file": "testdata/samples/simple_server.go",
+      "source_line": 14,
+      "function_name": "unknown",
+      "listen_port": 8080,
+      "listen_interface": "0.0.0.0",
+      "is_resolved": true,
+      "raw_value": ":8080",
+      "pattern_match": "net.Listen"
+    },
+    {
+      "type": "ingress",
+      "protocol": "https",
+      "process_name": "samples",
+      "source_file": "testdata/samples/simple_server.go",
+      "source_line": 18,
+      "function_name": "unknown",
+      "listen_port": 8443,
+      "listen_interface": "0.0.0.0",
+      "is_resolved": true,
+      "raw_value": ":8443",
+      "pattern_match": "http.ListenAndServeTLS"
+    }
+  ],
+  "total_count": 3,
+  "ingress_count": 3,
+  "egress_count": 0,
+  "process_name": ""
+}

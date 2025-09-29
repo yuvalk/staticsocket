@@ -98,11 +98,15 @@ func (pm *PatternMatcher) matchIngressPattern(callExpr *ast.CallExpr, pattern In
 func (pm *PatternMatcher) matchEgressPattern(callExpr *ast.CallExpr, pattern EgressPattern, funcName string) *types.SocketInfo {
 	var rawValue string
 	var argIndex int
+	var isURL bool
 
-	if pattern.URLArg > 0 {
+	// Check if this pattern uses URLArg (for HTTP methods)
+	if pattern.URLArg >= 0 && (funcName == "http.Get" || funcName == "http.Post" || funcName == "http.PostForm") {
 		argIndex = pattern.URLArg
+		isURL = true
 	} else {
 		argIndex = pattern.AddressArg
+		isURL = false
 	}
 
 	if len(callExpr.Args) <= argIndex {
@@ -121,7 +125,7 @@ func (pm *PatternMatcher) matchEgressPattern(callExpr *ast.CallExpr, pattern Egr
 	}
 
 	if rawValue != "" {
-		if pattern.URLArg > 0 {
+		if isURL {
 			pm.parseEgressURL(socket, rawValue)
 		} else {
 			pm.parseEgressAddress(socket, rawValue)
@@ -204,21 +208,24 @@ func (pm *PatternMatcher) parseEgressURL(socket *types.SocketInfo, url string) {
 	socket.IsResolved = true
 
 	// Simple URL parsing - in practice, you'd use net/url
+	var remainingURL string
 	if strings.HasPrefix(url, "https://") {
 		socket.Protocol = types.ProtocolHTTPS
-		url = url[8:]
+		remainingURL = url[8:]
 		port := 443
 		socket.DestinationPort = &port
 	} else if strings.HasPrefix(url, "http://") {
 		socket.Protocol = types.ProtocolHTTP
-		url = url[7:]
+		remainingURL = url[7:]
 		port := 80
 		socket.DestinationPort = &port
+	} else {
+		remainingURL = url
 	}
 
-	// Extract host from URL
-	parts := strings.Split(url, "/")
-	if len(parts) > 0 {
+	// Extract host from URL (everything before the first slash)
+	parts := strings.Split(remainingURL, "/")
+	if len(parts) > 0 && parts[0] != "" {
 		hostPort := parts[0]
 		if strings.Contains(hostPort, ":") {
 			hostPortParts := strings.Split(hostPort, ":")
