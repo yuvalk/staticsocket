@@ -1,0 +1,107 @@
+name: Bug Report
+description: File a bug report to help us improve
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! 
+        Please search existing issues before creating a new one.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: StaticSocket fails to detect socket patterns when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Create a Go file with '...'
+        2. Run `staticsocket -path ...`
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: sample-code
+    attributes:
+      label: Sample Code
+      description: Minimal reproducible Go code that demonstrates the issue
+      render: go
+      placeholder: |
+        package main
+        
+        import "net/http"
+        
+        func main() {
+            // Code that causes the issue
+            http.ListenAndServe(":8080", nil)
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: StaticSocket should detect the HTTP server and report port 8080
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened (include full error messages/output)
+      placeholder: |
+        Error: failed to parse...
+        OR
+        Expected socket detection but got empty results
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go Version
+      description: Output of `go version`
+      placeholder: go version go1.21.0 linux/amd64
+    validations:
+      required: true
+
+  - type: input
+    id: staticsocket-version
+    attributes:
+      label: StaticSocket Version
+      description: Version or commit hash
+      placeholder: v1.0.0 or commit abc123
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other (specify in additional context)
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem (logs, screenshots, etc.)
+      placeholder: Add any other context about the problem here.

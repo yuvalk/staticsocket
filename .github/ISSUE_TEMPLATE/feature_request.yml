@@ -1,0 +1,121 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! 
+        Please search existing issues to avoid duplicates.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Add support for detecting WebSocket connections in Go applications
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation & Use Case
+      description: Why is this feature needed? What problem does it solve?
+      placeholder: |
+        I'm analyzing microservices that use WebSockets for real-time communication.
+        Currently StaticSocket doesn't detect these patterns, making it hard to map
+        the complete network topology.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example Usage
+      description: Show how you envision this feature working
+      render: go
+      placeholder: |
+        // Go code that should be detected
+        http.HandleFunc("/ws", websocketHandler)
+        
+        // Expected StaticSocket output
+        {
+          "type": "ingress",
+          "protocol": "websocket",
+          "pattern_match": "websocket.Upgrade"
+        }
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      options:
+        - New socket pattern detection
+        - Enhanced variable resolution
+        - New output format
+        - Performance improvement
+        - Developer experience
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact Area
+      description: Which areas would this feature affect?
+      options:
+        - label: Socket pattern detection
+        - label: Variable resolution
+        - label: Output formatting
+        - label: Command-line interface
+        - label: Performance
+        - label: Documentation
+        - label: Testing
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: |
+        Alternative 1: Manual analysis of WebSocket code
+        Alternative 2: Using different static analysis tools
+        
+        Neither provides the integrated analysis that StaticSocket offers.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low (nice to have)
+        - Medium (would be helpful)
+        - High (needed for my use case)
+        - Critical (blocking my adoption)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you interested in contributing to this feature?
+      options:
+        - label: I'd like to implement this feature myself
+        - label: I can help with testing
+        - label: I can help with documentation
+        - label: I can provide code samples for testing
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or examples
+      placeholder: Add any other context about the feature request here.

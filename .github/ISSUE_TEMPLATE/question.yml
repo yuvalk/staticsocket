@@ -1,0 +1,82 @@
+name: Question
+description: Ask a question about using StaticSocket
+title: "[Question]: "
+labels: ["question", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about StaticSocket? We're here to help!
+        
+        **Before asking:**
+        - Check the [README](https://github.com/yuvalk/staticsocket/blob/main/README.md)
+        - Search [existing discussions](https://github.com/yuvalk/staticsocket/discussions)
+        - Look through [closed issues](https://github.com/yuvalk/staticsocket/issues?q=is%3Aissue+is%3Aclosed)
+
+  - type: dropdown
+    id: question-type
+    attributes:
+      label: Question Type
+      options:
+        - Usage help
+        - Best practices
+        - Integration guidance
+        - Output interpretation
+        - Performance optimization
+        - Contributing guidance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I configure StaticSocket to ignore test files when analyzing a project?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide context about what you're trying to achieve
+      placeholder: |
+        I'm using StaticSocket in CI/CD to analyze our microservices.
+        Currently it's detecting socket patterns in test files which
+        creates noise in our security reports.
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What Have You Tried?
+      description: What have you already attempted?
+      placeholder: |
+        - Tried using -path flag with specific directories
+        - Looked for exclude options in help
+        - Searched documentation for filtering
+
+  - type: textarea
+    id: sample-code
+    attributes:
+      label: Sample Code (if applicable)
+      description: Include relevant code or command examples
+      render: bash
+      placeholder: |
+        # Current command
+        staticsocket -path ./src -format json
+        
+        # Desired behavior
+        staticsocket -path ./src -exclude "**/*_test.go" -format json
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Relevant environment details
+      placeholder: |
+        - Go version: 1.21.0
+        - StaticSocket version: v1.0.0
+        - OS: Ubuntu 22.04
+        - Use case: CI/CD security scanning
