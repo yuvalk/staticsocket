@@ -163,7 +163,21 @@ func TestPatternMatcher_ParseURL_WithPort(t *testing.T) { ... }
 
 ### Architecture Guidelines
 
-#### Adding New Socket Patterns
+#### Adding New Languages
+
+1. **Create Language Analyzer**
+   ```go
+   // pkg/analyzers/python/python.go
+   type PythonAnalyzer struct {
+       patterns *PythonPatterns
+   }
+   
+   func (p *PythonAnalyzer) Analyze(path string) (*types.AnalysisResults, error) {
+       // Python AST parsing implementation
+   }
+   ```
+
+#### Adding New Socket Patterns (Go)
 
 1. **Update Pattern Definitions**
    ```go
@@ -331,7 +345,8 @@ We follow [Semantic Versioning](https://semver.org/):
 ### High-Priority Areas
 
 **Socket Pattern Detection:**
-- gRPC client/server patterns
+- Multi-language support (Python, Java, C++, Rust)
+- gRPC client/server patterns across languages
 - WebSocket connections
 - Message queue connections (RabbitMQ, Kafka)
 - Database-specific patterns (Redis, MongoDB)

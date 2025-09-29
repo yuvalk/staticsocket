@@ -1,7 +1,13 @@
 # Static Socket Analysis Requirements
 
 ## Overview
-This document outlines requirements for static code analysis techniques to identify socket creation patterns in source code repositories, with initial focus on Go (Golang) applications.
+This document outlines requirements for static code analysis techniques to identify socket creation patterns in source code repositories across multiple programming languages.
+
+**Current Implementation**: Go (Golang) language support  
+**Target Languages**: Python, Java, C++, Rust, JavaScript/Node.js, C#/.NET
+
+## Vision
+Create a universal static analysis tool that can identify network socket patterns across any programming language, providing consistent analysis and reporting regardless of the underlying technology stack.
 
 ## Goals
 1. Identify all locations where new sockets are created
@@ -256,10 +262,86 @@ http.Get("https://api.service.com/data")      // Egress: api.service.com:443
    - Token rotation procedures
    - Access control for sensitive operations
 
+## Multi-Language Support Roadmap
+
+### Phase 1: Go (Current - Implemented)
+- ✅ AST-based analysis using `go/ast` package
+- ✅ HTTP, TCP, UDP, gRPC pattern detection
+- ✅ Variable and constant resolution
+- ✅ Popular framework support (Gin, Echo, Fiber)
+
+### Phase 2: Python (Planned)
+**Socket Patterns to Detect:**
+- `socket.socket()`, `socket.bind()`, `socket.listen()`, `socket.connect()`
+- `http.server.HTTPServer`, `socketserver.TCPServer`
+- `requests.get()`, `requests.post()`, `urllib.request.urlopen()`
+- Flask: `app.run()`, Django: `runserver`, FastAPI patterns
+- `asyncio` networking patterns
+
+**Analysis Approach:**
+- Python AST parsing using `ast` module
+- Import tracking for framework detection
+- String literal and f-string resolution
+
+### Phase 3: Java (Planned)
+**Socket Patterns to Detect:**
+- `ServerSocket`, `Socket`, `DatagramSocket`
+- `HttpServer`, `HttpClient` (Java 11+)
+- Spring Boot: `@RestController`, `@RequestMapping`
+- Netty, OkHttp, Apache HttpClient patterns
+
+**Analysis Approach:**
+- JavaParser or Eclipse JDT for AST analysis
+- Annotation-based framework detection
+- Properties file integration
+
+### Phase 4: Additional Languages (Future)
+**C++**: Boost.Asio, POCO, raw sockets  
+**Rust**: tokio, std::net, hyper, reqwest  
+**JavaScript/Node.js**: http, express, axios, fetch  
+**C#/.NET**: HttpListener, HttpClient, ASP.NET Core
+
+## Universal Architecture Requirements
+
+### Language Detection
+- Automatic language identification by file extension
+- Multi-language project support
+- Language-specific parser selection
+
+### Consistent Output Format
+- Unified data structure across all languages
+- Language-specific metadata preservation
+- Cross-language pattern normalization
+
+### Plugin Architecture
+- Modular language analyzers
+- Configurable pattern detection rules
+- Custom framework definition support
+
+### Cross-Language Features
+- Polyglot project analysis
+- Inter-language service dependency mapping
+- Consistent variable resolution strategies
+
+## Implementation Strategy
+
+### Core Components
+1. **Language Registry**: Manages available language analyzers
+2. **Parser Factory**: Creates language-specific parsers
+3. **Pattern Matcher**: Language-agnostic pattern detection interface
+4. **Result Aggregator**: Combines results from multiple languages
+
+### Extension Points
+- **Language Analyzer Interface**: Standard interface for new languages
+- **Pattern Definition Format**: Declarative pattern specification
+- **Custom Framework Plugins**: User-defined pattern extensions
+
 ### Future Enhancements
 
-1. Support for additional languages (Python, Java, C++, Rust)
+1. ✅ Support for additional languages (In Progress)
 2. Runtime validation against static analysis results
 3. Integration with container orchestration platforms
 4. Automated security policy generation
 5. Real-time monitoring correlation
+6. IDE integration and real-time analysis
+7. Machine learning-based pattern discovery

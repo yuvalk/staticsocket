@@ -1,6 +1,9 @@
 # StaticSocket
 
-A powerful static analysis tool for identifying socket creation patterns in Go codebases. StaticSocket analyzes your Go source code to detect network connections, classify them as ingress (incoming) or egress (outgoing) traffic, and extract detailed metadata including hosts, ports, and protocols.
+A powerful static analysis tool for identifying socket creation patterns in source code. StaticSocket analyzes your codebase to detect network connections, classify them as ingress (incoming) or egress (outgoing) traffic, and extract detailed metadata including hosts, ports, and protocols.
+
+**Current Implementation**: Go language support  
+**Roadmap**: Multi-language support for Python, Java, C++, Rust, and more
 
 [![CI](https://github.com/yuvalk/staticsocket/workflows/CI/badge.svg)](https://github.com/yuvalk/staticsocket/actions)
 [![Go Report Card](https://goreportcard.com/badge/github.com/yuvalk/staticsocket)](https://goreportcard.com/report/github.com/yuvalk/staticsocket)
@@ -9,10 +12,11 @@ A powerful static analysis tool for identifying socket creation patterns in Go c
 ## Features
 
 ### 🔍 **Comprehensive Socket Detection**
-- **HTTP/HTTPS servers**: `http.ListenAndServe`, `http.ListenAndServeTLS`
-- **TCP/UDP listeners**: `net.Listen`, `net.ListenTCP`, `net.ListenUDP`
-- **Outbound connections**: `net.Dial`, `net.DialTimeout`, `http.Get`, `http.Post`
+- **HTTP/HTTPS servers**: `http.ListenAndServe`, `http.ListenAndServeTLS` (Go)
+- **TCP/UDP listeners**: `net.Listen`, `net.ListenTCP`, `net.ListenUDP` (Go)
+- **Outbound connections**: `net.Dial`, `net.DialTimeout`, `http.Get`, `http.Post` (Go)
 - **Framework support**: Detects patterns across popular Go networking libraries
+- **Future languages**: Python (socket, requests), Java (ServerSocket, HttpClient), C++ (Boost.Asio), Rust (tokio)
 
 ### 📊 **Traffic Classification**
 - **Ingress Traffic**: Servers, listeners, and services accepting connections
@@ -20,9 +24,10 @@ A powerful static analysis tool for identifying socket creation patterns in Go c
 
 ### 🧠 **Intelligent Resolution**
 - **String literals**: Direct parsing of hardcoded URLs and addresses
-- **Constants**: Resolves `const` declarations throughout the codebase
-- **Variables**: Smart pattern recognition for common variable types
-- **Dynamic patterns**: httptest servers, API URLs, environment variables
+- **Constants**: Resolves `const` declarations throughout the codebase (Go)
+- **Variables**: Smart pattern recognition for common variable types (Go)
+- **Dynamic patterns**: httptest servers, API URLs, environment variables (Go)
+- **Language-specific**: Adapts resolution strategies per language
 
 ### 📋 **Multiple Output Formats**
 - **JSON**: Structured data for programmatic consumption
@@ -52,12 +57,12 @@ docker run --rm -v $(pwd):/workspace staticsocket/staticsocket -path /workspace
 
 ## Quick Start
 
-### Analyze a Single File
+### Analyze a Go File
 ```bash
 staticsocket -path main.go -format json
 ```
 
-### Analyze a Directory
+### Analyze a Go Project
 ```bash
 staticsocket -path ./src -format yaml
 ```
@@ -163,11 +168,13 @@ apiURL := os.Getenv("API_URL")
 http.Get(apiURL)  // ✅ Resolves to external-service
 ```
 
-### Framework Detection
-Automatically detects socket usage in popular frameworks:
+### Framework Detection (Go)
+Automatically detects socket usage in popular Go frameworks:
 - **HTTP frameworks**: Gin, Echo, Fiber
 - **gRPC**: Server and client connections
 - **Database drivers**: SQL, MongoDB connections
+
+*Framework detection for other languages planned in future releases*
 
 ## Command Line Options
 
@@ -180,6 +187,8 @@ Options:
   -output string      Output file (default: stdout)
   -verbose           Enable verbose output
   -help              Show help message
+
+Note: Currently supports Go files (.go). Other languages coming soon.
 ```
 
 ## Use Cases
@@ -318,8 +327,9 @@ New contributors can look for issues labeled:
 
 ### 📝 **Areas for Contribution**
 
-- **New socket patterns**: Add support for more Go networking libraries
-- **Enhanced resolution**: Improve variable and constant resolution
+- **Multi-language support**: Add Python, Java, C++, Rust analyzers
+- **New socket patterns**: Add support for more networking libraries per language
+- **Enhanced resolution**: Improve variable and constant resolution across languages
 - **Output formats**: Add new export formats (XML, Prometheus, etc.)
 - **Performance**: Optimize analysis for large codebases
 - **Documentation**: Examples, tutorials, and guides
